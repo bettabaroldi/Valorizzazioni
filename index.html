@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valorizzazioni — Studio Baroldi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --border: #e5e2db;
+  --border-strong: #c8c4bc;
+  --text: #1a1916;
+  --text-muted: #6b6760;
+  --text-faint: #9e9b96;
+  --accent: #2c5282;
+  --accent-light: #ebf0f8;
+  --danger: #9b2c2c;
+  --danger-light: #fff5f5;
+  --success: #276749;
+  --success-light: #f0fff4;
+  --warning: #7b4f12;
+  --warning-light: #fffbeb;
+  --amber: #b7791f;
+  --amber-light: #fef3c7;
+  --radius: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; }
+.app { max-width: 980px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* LOGIN */
+.login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.login-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem 2rem; width: 360px; text-align: center; }
+.login-box h1 { font-size: 18px; font-weight: normal; margin-bottom: 0.25rem; }
+.login-box p { font-size: 13px; color: var(--text-muted); font-family: Arial, sans-serif; margin-bottom: 1.5rem; }
+.login-box input { width: 100%; font-size: 15px; padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: 'Georgia', serif; margin-bottom: 10px; text-align: center; letter-spacing: 0.1em; }
+.login-box input:focus { outline: none; border-color: var(--accent); }
+.login-btn { width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: Arial, sans-serif; font-size: 14px; cursor: pointer; font-weight: bold; }
+.login-btn:hover { opacity: 0.88; }
+.login-error { font-size: 12px; color: var(--danger); font-family: Arial, sans-serif; margin-top: 8px; min-height: 18px; }
+
+/* HEADER */
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.logo { font-size: 13px; font-weight: normal; color: var(--text-muted); font-family: Arial, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; }
+.logo strong { color: var(--text); }
+
+/* UPLOAD ZONE */
+.upload-zone { border: 2px dashed var(--border-strong); border-radius: var(--radius); padding: 3rem 2rem; text-align: center; cursor: pointer; background: var(--surface); transition: border-color 0.2s, background 0.2s; }
+.upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--accent-light); }
+.upload-zone h2 { font-size: 17px; font-weight: normal; color: var(--text); margin-bottom: 0.5rem; }
+.upload-zone p { font-size: 13px; color: var(--text-muted); font-family: Arial, sans-serif; }
+.upload-zone input { display: none; }
+.btn-upload { display: inline-block; margin-top: 1rem; padding: 9px 20px; background: var(--accent); color: #fff; border-radius: var(--radius); font-family: Arial, sans-serif; font-size: 13px; cursor: pointer; border: none; }
+
+/* LOADING */
+.loading { text-align: center; padding: 3rem; }
+.loading p { font-size: 14px; color: var(--text-muted); font-family: Arial, sans-serif; margin-top: 1rem; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* STATS */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.85rem 1rem; }
+.stat-label { font-size: 11px; color: var(--text-faint); font-family: Arial, sans-serif; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.stat-val { font-size: 22px; color: var(--text); }
+.stat-val.danger { color: var(--danger); }
+.stat-val.success { color: var(--success); }
+
+/* CLIENTE HEADER */
+.cliente-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: baseline; gap: 12px; }
+.cliente-nome { font-size: 18px; font-weight: normal; color: var(--text); }
+.cliente-meta { font-size: 13px; color: var(--text-muted); font-family: Arial, sans-serif; }
+
+/* VOCI */
+.voce { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 8px; transition: opacity 0.2s, border-color 0.2s; cursor: grab; }
+.voce:active { cursor: grabbing; }
+.voce.eliminata { opacity: 0.45; border-left: 3px solid var(--danger); }
+.voce.modificata { border-left: 3px solid var(--amber); }
+.voce.drag-over-voce { border-top: 2px solid var(--accent); }
+
+/* GRUPPI */
+.gruppo { margin-bottom: 1.5rem; }
+.gruppo-header { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; cursor: pointer; user-select: none; }
+.gruppo-header:hover { background: var(--bg); }
+.gruppo-toggle { font-size: 12px; color: var(--text-faint); transition: transform 0.2s; }
+.gruppo-toggle.collapsed { transform: rotate(-90deg); }
+.gruppo-nome { font-size: 14px; font-weight: 500; color: var(--text); font-family: Arial, sans-serif; flex: 1; }
+.gruppo-nome-input { font-size: 14px; font-weight: 500; color: var(--text); font-family: Arial, sans-serif; flex: 1; border: none; background: transparent; outline: none; border-bottom: 1px solid var(--border-strong); }
+.gruppo-count { font-size: 12px; color: var(--text-faint); font-family: Arial, sans-serif; }
+.gruppo-tot { font-size: 13px; color: var(--success); font-family: Arial, sans-serif; font-weight: 500; }
+.gruppo-body { display: block; }
+.gruppo-body.collapsed { display: none; }
+.gruppo-drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 10px; text-align: center; font-size: 12px; color: var(--text-faint); font-family: Arial, sans-serif; margin-top: 4px; display: none; }
+.gruppo-drop-zone.visible { display: block; }
+.gruppo-drop-zone.drag-over { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.voce-top { display: flex; gap: 12px; align-items: flex-start; }
+.voce-body { flex: 1; }
+.voce-meta { font-size: 12px; color: var(--text-faint); font-family: Arial, sans-serif; margin-bottom: 5px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.badge { font-size: 10px; padding: 1px 7px; border-radius: 99px; font-family: Arial, sans-serif; font-weight: bold; }
+.badge-del { background: var(--danger-light); color: var(--danger); }
+.badge-mod { background: var(--amber-light); color: var(--amber); }
+.badge-group { background: var(--success-light); color: var(--success); }
+.voce-check { width: 18px; height: 18px; cursor: pointer; margin-top: 3px; flex-shrink: 0; accent-color: var(--accent); }
+.voce.selezionata { border-color: var(--accent); background: var(--accent-light); }
+.unisci-bar { display: none; position: sticky; top: 0; z-index: 10; background: var(--accent); color: #fff; padding: 10px 16px; border-radius: var(--radius); margin-bottom: 12px; font-family: Arial, sans-serif; font-size: 13px; align-items: center; gap: 12px; }
+.unisci-bar.visible { display: flex; }
+.btn-unisci { background: #fff; color: var(--accent); border: none; border-radius: var(--radius); padding: 6px 14px; font-size: 13px; font-weight: bold; cursor: pointer; font-family: Arial, sans-serif; }
+.btn-annulla-sel { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.5); border-radius: var(--radius); padding: 6px 14px; font-size: 13px; cursor: pointer; font-family: Arial, sans-serif; }
+.desc { font-size: 14px; color: var(--text); line-height: 1.55; }
+.desc.barrata { text-decoration: line-through; color: var(--text-faint); }
+.prezzo-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 130px; }
+.prezzo-label { font-size: 11px; color: var(--text-faint); font-family: Arial, sans-serif; }
+.prezzo-row { display: flex; align-items: center; gap: 5px; }
+.prezzo-row-label { font-size: 11px; color: var(--text-faint); font-family: Arial, sans-serif; white-space: nowrap; }
+.prezzo-input { width: 90px; font-size: 14px; text-align: right; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 4px 7px; background: var(--bg); color: var(--text); font-family: 'Georgia', serif; }
+.prezzo-input:focus { outline: none; border-color: var(--accent); background: var(--accent-light); }
+.voce-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.btn { font-size: 12px; padding: 4px 11px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: transparent; color: var(--text-muted); cursor: pointer; font-family: Arial, sans-serif; display: inline-flex; align-items: center; gap: 4px; }
+.btn:hover { background: var(--bg); color: var(--text); }
+.btn-del { color: var(--danger); border-color: #fca5a5; }
+.btn-del:hover { background: var(--danger-light); }
+.btn-ok { color: var(--success); border-color: #86efac; }
+.btn-ok:hover { background: var(--success-light); }
+.btn-ai { color: var(--accent); border-color: #93c5fd; }
+.btn-ai:hover { background: var(--accent-light); }
+
+/* MODIFICA BOX */
+.modbox { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.sug-box { background: var(--accent-light); border: 1px solid #bfdbfe; border-radius: var(--radius); padding: 8px 12px; font-size: 13px; color: var(--accent); font-family: Arial, sans-serif; margin-bottom: 8px; cursor: pointer; line-height: 1.5; }
+.sug-box:hover { background: #dbeafe; }
+.sug-label { font-size: 11px; color: var(--text-faint); font-family: Arial, sans-serif; margin-bottom: 4px; }
+.modbox textarea { width: 100%; font-size: 13px; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg); color: var(--text); resize: vertical; min-height: 75px; font-family: 'Georgia', serif; line-height: 1.5; }
+.modbox textarea:focus { outline: none; border-color: var(--accent); }
+.modbox-hint { font-size: 11px; color: var(--text-faint); font-family: Arial, sans-serif; margin-top: 4px; }
+.loading-ai { font-size: 12px; color: var(--accent); font-family: Arial, sans-serif; font-style: italic; margin-bottom: 6px; }
+
+/* TOOLBAR */
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.toolbar-left { font-size: 13px; color: var(--text-muted); font-family: Arial, sans-serif; }
+.toolbar-right { display: flex; gap: 8px; }
+.btn-primary { font-size: 13px; padding: 8px 18px; border-radius: var(--radius); border: none; background: var(--accent); color: #fff; cursor: pointer; font-family: Arial, sans-serif; font-weight: bold; }
+.btn-primary:hover { opacity: 0.88; }
+.btn-secondary { font-size: 13px; padding: 8px 18px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); cursor: pointer; font-family: Arial, sans-serif; }
+.btn-secondary:hover { background: var(--bg); }
+
+/* API KEY */
+.api-section { background: var(--warning-light); border: 1px solid #fcd34d; border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+.api-section label { font-size: 12px; font-family: Arial, sans-serif; color: var(--warning); display: block; margin-bottom: 6px; font-weight: bold; }
+.api-section input { width: 100%; font-size: 13px; padding: 7px 10px; border: 1px solid #fcd34d; border-radius: var(--radius); background: #fff; color: var(--text); font-family: Arial, sans-serif; }
+.api-note { font-size: 11px; color: var(--text-muted); margin-top: 5px; font-family: Arial, sans-serif; }
+
+.hidden { display: none; }
+.section { margin-bottom: 2rem; }
+
+/* === MODULO PARCELLE STORICHE === */
+.storico-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-top: 2rem; }
+.storico-header { padding: 1rem 1.25rem; cursor: pointer; display: flex; align-items: center; gap: 12px; user-select: none; border-bottom: 1px solid var(--border); }
+.storico-header:hover { background: var(--bg); }
+.storico-header h3 { font-size: 16px; font-weight: normal; color: var(--text); margin: 0; flex: 1; }
+.storico-header .toggle { font-size: 14px; color: var(--text-faint); transition: transform 0.2s; }
+.storico-header.open .toggle { transform: rotate(90deg); }
+.storico-body { padding: 1.25rem; display: none; }
+.storico-body.open { display: block; }
+.storico-step { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px dashed var(--border); }
+.storico-step:last-child { border-bottom: none; padding-bottom: 0; }
+.storico-step-title { font-size: 13px; font-weight: bold; font-family: Arial, sans-serif; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+.storico-step-desc { font-size: 13px; color: var(--text-muted); font-family: Arial, sans-serif; margin-bottom: 12px; }
+.storico-upload { border: 2px dashed var(--border-strong); border-radius: var(--radius); padding: 1.5rem; text-align: center; cursor: pointer; background: var(--bg); transition: all 0.2s; }
+.storico-upload:hover, .storico-upload.drag { border-color: var(--accent); background: var(--accent-light); }
+.storico-upload p { font-size: 13px; color: var(--text-muted); font-family: Arial, sans-serif; margin: 0; }
+.storico-files { margin-top: 12px; }
+.storico-file { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; font-family: Arial, sans-serif; font-size: 13px; }
+.storico-file-name { flex: 1; color: var(--text); }
+.storico-file-status { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: bold; }
+.status-attesa { background: var(--bg); color: var(--text-faint); border: 1px solid var(--border); }
+.status-elab { background: var(--accent-light); color: var(--accent); }
+.status-ok { background: var(--success-light); color: var(--success); }
+.status-err { background: var(--danger-light); color: var(--danger); }
+.storico-file-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 16px; padding: 0 4px; }
+.storico-file-remove:hover { color: var(--danger); }
+.consolidato-tabella { width: 100%; border-collapse: collapse; margin-top: 10px; font-family: Arial, sans-serif; font-size: 12px; }
+.consolidato-tabella th { background: var(--accent); color: #fff; padding: 8px 10px; text-align: left; font-weight: bold; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+.consolidato-tabella td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.consolidato-tabella tr:hover { background: var(--bg); }
+.canonica-tag { display: inline-block; font-size: 10px; padding: 1px 7px; background: var(--accent-light); color: var(--accent); border-radius: 99px; font-weight: bold; }
+.freq-tag { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: bold; }
+.freq-mensile { background: var(--success-light); color: var(--success); }
+.freq-trimestrale { background: var(--accent-light); color: var(--accent); }
+.freq-annuale { background: var(--amber-light); color: var(--amber); }
+.freq-unatantum { background: var(--warning-light); color: var(--warning); }
+.freq-sporadica { background: var(--danger-light); color: var(--danger); }
+.varia-dettaglio { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-style: italic; }
+.profilo-card { background: var(--accent-light); border: 1px solid #bfdbfe; border-radius: var(--radius); padding: 1.25rem; font-family: 'Georgia', serif; font-size: 14px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+.matching-tabella { width: 100%; border-collapse: collapse; margin-top: 10px; font-family: Arial, sans-serif; font-size: 12px; }
+.matching-tabella th { background: var(--accent); color: #fff; padding: 8px 10px; text-align: left; font-weight: bold; font-size: 11px; }
+.matching-tabella td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.matching-tabella select { font-size: 12px; padding: 4px 6px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); font-family: Arial, sans-serif; width: 100%; }
+.matching-tabella input[type=number] { font-size: 12px; padding: 4px 6px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg); font-family: Arial, sans-serif; text-align: right; width: 80px; }
+.matching-motivo { font-size: 11px; color: var(--text-muted); font-style: italic; }
+.match-nuovo { background: var(--success-light); }
+.match-rimosso { background: var(--danger-light); }
+.proposta-output { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-top: 10px; font-family: 'Georgia', serif; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+.bottoni-finali { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.btn-azione { font-size: 13px; padding: 9px 18px; border-radius: var(--radius); border: 1px solid var(--accent); background: var(--surface); color: var(--accent); cursor: pointer; font-family: Arial, sans-serif; font-weight: bold; }
+.btn-azione:hover { background: var(--accent-light); }
+.btn-azione-primary { background: var(--accent); color: #fff; }
+.btn-azione-primary:hover { opacity: 0.88; }
+.btn-azione:disabled { opacity: 0.5; cursor: not-allowed; }
+.progress-info { font-size: 12px; color: var(--text-muted); font-family: Arial, sans-serif; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <h1>Studio Baroldi</h1>
+    <p>Gestione Valorizzazioni — accesso riservato</p>
+    <input type="password" id="login-pwd" placeholder="Password" onkeydown="if(event.key==='Enter')verificaPwd()" autofocus />
+    <button class="login-btn" onclick="verificaPwd()">Accedi</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none">
+  <div class="topbar">
+    <div class="logo"><strong>Studio Baroldi</strong> — Gestione Valorizzazioni</div>
+    <div style="font-size:12px; color:var(--text-faint); font-family:Arial,sans-serif;" id="data-ora"></div>
+  </div>
+
+  <!-- API KEY -->
+  <div class="api-section">
+    <label>🔑 Chiave API Anthropic (necessaria per estrazione PDF e suggerimenti)</label>
+    <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off" oninput="salvaChiave(this.value)" />
+    <div class="api-note">La chiave viene salvata in questo browser — non serve reinserirla ogni volta. Non viene trasmessa ad altri.</div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="upload-section" class="section">
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <h2>Carica PDF valorizzazioni da Zucchetti</h2>
+      <p>Un PDF per cliente — trascina qui o clicca per scegliere il file</p>
+      <button class="btn-upload" onclick="event.stopPropagation(); document.getElementById('file-input').click()">Scegli file PDF</button>
+      <input type="file" id="file-input" accept=".pdf" onchange="caricaPDF(this.files[0])">
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading-section" class="section hidden">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p id="loading-msg">Estrazione voci in corso...</p>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div id="editor-section" class="section hidden">
+    <div class="cliente-bar">
+      <div class="cliente-nome" id="cliente-nome">—</div>
+      <div class="cliente-meta" id="cliente-meta"></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Voci totali</div><div class="stat-val" id="s-tot">0</div></div>
+      <div class="stat"><div class="stat-label">Eliminate</div><div class="stat-val danger" id="s-elim">0</div></div>
+      <div class="stat"><div class="stat-label">Modificate</div><div class="stat-val" style="color:var(--amber)" id="s-mod">0</div></div>
+      <div class="stat"><div class="stat-label">Totale €</div><div class="stat-val success" id="s-importo">0,00</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-left" id="toolbar-info"></div>
+      <div class="toolbar-right">
+        <button class="btn-secondary" onclick="nuovoFile()">↩ Nuovo file</button>
+        <button class="btn-secondary btn-ai" id="btn-suggerisci" onclick="suggerisciRaggruppamenti()">✦ Suggerisci voci da unire</button>
+        <button class="btn-primary" onclick="esportaExcel()">⬇ Esporta istruzioni per dipendente</button>
+      </div>
+    </div>
+    <div id="suggerimenti-box" style="display:none;margin-bottom:1rem;border:1px solid var(--border-strong);border-radius:var(--radius);padding:1rem;background:var(--accent-light)">
+      <div style="font-size:13px;font-weight:500;font-family:Arial;margin-bottom:10px;color:var(--accent)">✦ Suggerimenti Claude per voci simili da raggruppare</div>
+    </div>
+    </div>
+    <div class="unisci-bar" id="unisci-bar">
+      <span id="unisci-count">0 voci selezionate</span>
+      <button class="btn-unisci" onclick="unisciVoci()">⊕ Unisci in una voce</button>
+      <button class="btn-annulla-sel" onclick="annullaSelzione()">✕ Annulla selezione</button>
+    </div>
+    <div id="lista-voci"></div>
+
+    <!-- === MODULO PARCELLE STORICHE === -->
+    <div class="storico-panel">
+      <div class="storico-header" id="storico-header" onclick="toggleStorico()">
+        <span class="toggle">▶</span>
+        <h3>📂 Parcelle storiche &amp; Proposta prezzi</h3>
+        <span style="font-size:12px;color:var(--text-faint);font-family:Arial">opzionale</span>
+      </div>
+      <div class="storico-body" id="storico-body">
+
+        <!-- STEP 1: Upload PDF parcelle -->
+        <div class="storico-step">
+          <div class="storico-step-title">Step 1 — Carica le parcelle dell'anno scorso</div>
+          <div class="storico-step-desc">Carica i PDF delle parcelle del cliente. Funziona sia con <strong>singole parcelle</strong> (un PDF = una parcella) sia con <strong>cumulativi</strong> (un PDF contiene tutte le proforma emesse — il sistema le separa automaticamente).</div>
+          <div class="storico-upload" id="storico-drop" onclick="document.getElementById('storico-input').click()">
+            <p>📄 Trascina qui i PDF o clicca per selezionarli (selezione multipla)</p>
+            <input type="file" id="storico-input" accept=".pdf" multiple style="display:none" onchange="aggiungiParcelle(this.files)">
+          </div>
+          <div class="storico-files" id="storico-files"></div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-azione btn-azione-primary" id="btn-estrai" onclick="estraiTutte()" disabled>▶ Estrai voci da tutti i PDF</button>
+            <button class="btn-azione" onclick="resetStorico()">↩ Ricomincia</button>
+          </div>
+          <div class="progress-info" id="estrai-progress"></div>
+        </div>
+
+        <!-- STEP 2: Consolidamento -->
+        <div class="storico-step hidden" id="step-consolida">
+          <div class="storico-step-title">Step 2 — Consolida voci ricorrenti</div>
+          <div class="storico-step-desc">Claude raggruppa le righe ripetute in voci uniche, calcola frequenza, importo medio e segnala le variazioni mese su mese. Normalizza ad un elenco di voci canoniche.</div>
+          <button class="btn-azione btn-azione-primary" id="btn-consolida" onclick="consolidaVoci()">✦ Consolida e normalizza</button>
+          <div class="progress-info" id="consolida-progress"></div>
+          <div id="consolidato-output"></div>
+        </div>
+
+        <!-- STEP 3: Profilo cliente -->
+        <div class="storico-step hidden" id="step-profilo">
+          <div class="storico-step-title">Step 3 — Profilo di parcellazione del cliente</div>
+          <div class="storico-step-desc">Lettura narrativa: come è stato parcellato l'anno scorso, sconti rilevati, stagionalità, abitudini.</div>
+          <button class="btn-azione btn-azione-primary" id="btn-profilo" onclick="generaProfilo()">✦ Genera profilo cliente</button>
+          <div class="progress-info" id="profilo-progress"></div>
+          <div id="profilo-output"></div>
+        </div>
+
+        <!-- STEP 4: Matching -->
+        <div class="storico-step hidden" id="step-matching">
+          <div class="storico-step-title">Step 4 — Matching con valorizzazioni nuove</div>
+          <div class="storico-step-desc">Ogni voce storica viene abbinata alla voce corrispondente del listino nuovo (caricato in alto). Puoi correggere ogni riga.</div>
+          <button class="btn-azione btn-azione-primary" id="btn-matching" onclick="proponiMatching()">✦ Proponi matching</button>
+          <div class="progress-info" id="matching-progress"></div>
+          <div id="matching-output"></div>
+        </div>
+
+        <!-- STEP 5: Output -->
+        <div class="storico-step hidden" id="step-output">
+          <div class="storico-step-title">Step 5 — Genera proposta parcella</div>
+          <div class="storico-step-desc">Costruisce la parcella nuova usando i prezzi delle valorizzazioni con la stessa logica di parcellazione dell'anno scorso.</div>
+          <div class="bottoni-finali">
+            <button class="btn-azione btn-azione-primary" onclick="generaProposta('annuale')">📄 Parcella annuale unica</button>
+            <button class="btn-azione btn-azione-primary" onclick="generaProposta('trimestrale')">📄 4 Parcelle trimestrali</button>
+            <button class="btn-azione" onclick="esportaJSONTariffario()">⬇ Esporta dati JSON (per tariffario futuro)</button>
+            <button class="btn-azione" onclick="esportaPropostaExcel()">⬇ Esporta proposta in Excel</button>
+          </div>
+          <div id="proposta-output"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let voci = [];
+let stato = {};
+let gruppi = [];
+let clienteNome = '';
+
+document.getElementById('data-ora').textContent = new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+const savedKey = localStorage.getItem('sb_api_key');
+if (savedKey) document.getElementById('api-key').value = savedKey;
+function salvaChiave(val) { if (val.startsWith('sk-')) localStorage.setItem('sb_api_key', val); }
+
+const PWD_HASH = '8e9b6f2a1c4d7e3f0a5b8c2d6e9f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f';
+async function hashPwd(pwd) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function verificaPwd() {
+  const pwd = document.getElementById('login-pwd').value;
+  const hash = await hashPwd(pwd);
+  if (pwd === 'Baroldi2026!' || localStorage.getItem('sb_pwd') === pwd) {
+    localStorage.setItem('sb_pwd', pwd);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+  } else {
+    document.getElementById('login-error').textContent = 'Password non corretta.';
+    document.getElementById('login-pwd').value = '';
+    document.getElementById('login-pwd').focus();
+  }
+}
+if (localStorage.getItem('sb_pwd')) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+}
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); if (e.dataTransfer.files[0]) caricaPDF(e.dataTransfer.files[0]); });
+
+function getApiKey() { return document.getElementById('api-key').value.trim(); }
+
+async function caricaPDF(file) {
+  const key = getApiKey();
+  if (!key) { alert('Inserisci prima la chiave API Anthropic.'); return; }
+  mostra('loading-section');
+  nascondi('upload-section');
+  nascondi('editor-section');
+  setLoading('Lettura PDF...');
+
+  const b64 = await fileToBase64(file);
+  setLoading('Estrazione voci con Claude AI...');
+
+  const prompt = `Analizza questo PDF di valorizzazioni da gestionale Zucchetti di uno studio di consulenza del lavoro.
+Estrai TUTTE le voci e raggruppale per argomento. Restituisci SOLO un JSON con questa struttura ESATTA:
+{
+  "cliente": "NOME CLIENTE come appare nel documento",
+  "gruppi": [
+    {
+      "nome": "Nome gruppo es. Cassa Edile / MUT",
+      "voci": [
+        {
+          "data": "GG/MM/AAAA",
+          "codice": "codice numerico es. 00020",
+          "descrizione": "testo completo della voce",
+          "importo": 0.00,
+          "tipo": "Onorario"
+        }
+      ]
+    }
+  ]
+}
+Regole:
+- Includi TUTTE le voci, anche quelle con importo 0
+- Raggruppa per argomento logico (es. Infortuni, Cassa Edile/MUT, TFR e Fondi Pensione, Pratiche INAIL, Certificazioni Uniche, Consulenza del lavoro, ecc.)
+- Riporta la descrizione COMPLETA anche se era su più righe nel PDF
+- importo è un numero decimale (es. 150.00)
+- Il cliente si trova nell'intestazione "Valorizzazioni da elaborare - NOME"
+- Nessun testo prima o dopo il JSON`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: [{
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: b64 }
+          }, { type: 'text', text: prompt }]
+        }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const testo = data.content[0].text.trim();
+    const jsonStr = testo.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(jsonStr);
+    clienteNome = parsed.cliente || 'Cliente';
+    let idCounter = 1;
+    gruppi = parsed.gruppi.map(g => ({
+      id: 'g' + idCounter++,
+      nome: g.nome,
+      collassato: false,
+      voci: g.voci.map(v => ({ id: idCounter++, gruppo: null, ...v }))
+    }));
+    gruppi.push({ id: 'g0', nome: 'Senza categoria', collassato: false, voci: [] });
+    gruppi.forEach(g => g.voci.forEach(v => { v.gruppo = g.id; }));
+    voci = gruppi.flatMap(g => g.voci);
+    stato = {};
+    voci.forEach(v => { stato[v.id] = { eliminata: false, descMod: null, importoMod: null, spese: 0, antic: 0 }; });
+    renderEditor();
+  } catch(e) {
+    alert('Errore nell\'estrazione: ' + e.message + '\n\nVerifica la chiave API e riprova.');
+    mostra('upload-section');
+  }
+  nascondi('loading-section');
+}
+
+function renderEditor() {
+  document.getElementById('cliente-nome').textContent = clienteNome;
+  document.getElementById('cliente-meta').textContent = voci.length + ' voci estratte dal PDF';
+  mostra('editor-section');
+  renderVoci();
+}
+
+function renderVoci() {
+  const container = document.getElementById('lista-voci');
+  container.innerHTML = '';
+  let dragSrcId = null;
+
+  gruppi.forEach(g => {
+    const vociFiltrate = g.voci;
+    const totGruppo = vociFiltrate.reduce((acc, v) => {
+      if (stato[v.id].eliminata) return acc;
+      return acc + (stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo) + (stato[v.id].spese||0) + (stato[v.id].antic||0);
+    }, 0);
+
+    const gDiv = document.createElement('div');
+    gDiv.className = 'gruppo';
+    gDiv.id = 'gruppo-' + g.id;
+
+    const header = document.createElement('div');
+    header.className = 'gruppo-header';
+    header.innerHTML = `
+      <span class="gruppo-toggle${g.collassato ? ' collapsed' : ''}">▼</span>
+      <input class="gruppo-nome-input" value="${g.nome}" onchange="rinominaGruppo('${g.id}', this.value)" onclick="event.stopPropagation()" />
+      <span class="gruppo-count">${vociFiltrate.length} voci</span>
+      <span class="gruppo-tot">€ ${totGruppo.toLocaleString('it-IT', {minimumFractionDigits:2})}</span>
+    `;
+    header.addEventListener('click', () => {
+      g.collassato = !g.collassato;
+      body.classList.toggle('collapsed', g.collassato);
+      header.querySelector('.gruppo-toggle').classList.toggle('collapsed', g.collassato);
+    });
+    gDiv.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'gruppo-body' + (g.collassato ? ' collapsed' : '');
+
+    vociFiltrate.forEach(v => {
+      const s = stato[v.id];
+      const desc = s.descMod !== null ? s.descMod : v.descrizione;
+      const imp = s.importoMod !== null ? s.importoMod : v.importo;
+      const isEl = s.eliminata;
+      const isMod = !isEl && (s.descMod !== null || s.importoMod !== null);
+
+      const d = document.createElement('div');
+      d.className = 'voce' + (isEl ? ' eliminata' : '') + (isMod ? ' modificata' : '');
+      d.id = 'voce-' + v.id;
+      d.draggable = !isEl;
+      d.dataset.voceid = v.id;
+      d.dataset.gruppoid = g.id;
+
+      let badges = '';
+      if (isEl) badges += '<span class="badge badge-del">ELIMINATA</span>';
+      if (isMod) badges += '<span class="badge badge-mod">MODIFICATA</span>';
+
+      // Select gruppo per spostamento
+      const opzioniGruppi = gruppi.map(og => `<option value="${og.id}" ${og.id === g.id ? 'selected' : ''}>${og.nome}</option>`).join('');
+
+      d.innerHTML = `
+        <div class="voce-top">
+          <input type="checkbox" class="voce-check" id="chk-${v.id}" ${isEl ? 'disabled' : ''} onchange="toggleSel(${v.id}, this.checked)" />
+          <div class="voce-body">
+            <div class="voce-meta">
+              <span>${v.data}</span>
+              <span style="font-family:monospace;background:var(--bg);padding:1px 5px;border-radius:3px;border:1px solid var(--border)">${v.codice}</span>
+              <span>${v.tipo}</span>
+              ${badges}
+            </div>
+            <div class="desc${isEl ? ' barrata' : ''}" id="desc-${v.id}">${desc}</div>
+          </div>
+          <div class="prezzo-col">
+            <div class="prezzo-row"><span class="prezzo-row-label">Onorario €</span><input class="prezzo-input" type="number" step="0.01" min="0" value="${imp.toFixed(2)}" id="imp-${v.id}" ${isEl ? 'disabled' : ''} onchange="cambiaImp(${v.id}, this.value)" /></div>
+            <div class="prezzo-row"><span class="prezzo-row-label">Spese €</span><input class="prezzo-input" type="number" step="0.01" min="0" value="${(s.spese||0).toFixed(2)}" id="spe-${v.id}" ${isEl ? 'disabled' : ''} onchange="cambiaSpese(${v.id}, this.value)" /></div>
+            <div class="prezzo-row"><span class="prezzo-row-label">Antic. €</span><input class="prezzo-input" type="number" step="0.01" min="0" value="${(s.antic||0).toFixed(2)}" id="ant-${v.id}" ${isEl ? 'disabled' : ''} onchange="cambiaAntic(${v.id}, this.value)" /></div>
+          </div>
+        </div>
+        <div class="voce-actions">
+          ${!isEl ? `
+            <button class="btn btn-del" onclick="elimina(${v.id})">✕ Elimina</button>
+            <button class="btn" onclick="toggleMod(${v.id})">✎ Modifica testo</button>
+            <button class="btn btn-ai" onclick="suggerisciAI(${v.id})">✦ Suggerisci riscrittura</button>
+            <select class="btn" style="cursor:pointer" onchange="spostaVoce(${v.id}, '${g.id}', this.value); this.value='${g.id}'" title="Sposta in altro gruppo">
+              <option value="${g.id}" disabled>↕ Sposta in...</option>
+              ${opzioniGruppi}
+            </select>
+          ` : `
+            <button class="btn btn-ok" onclick="ripristina(${v.id})">↩ Ripristina</button>
+          `}
+        </div>
+        <div class="modbox" id="modbox-${v.id}">
+          <div id="sug-${v.id}"></div>
+          <div class="sug-label">Testo voce (modificabile):</div>
+          <textarea id="ta-${v.id}" onchange="salvaDesc(${v.id}, this.value)">${desc}</textarea>
+          <div class="modbox-hint">Le modifiche vengono salvate automaticamente.</div>
+        </div>
+      `;
+
+      // Drag & drop
+      d.addEventListener('dragstart', e => {
+        dragSrcId = v.id;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => d.style.opacity = '0.4', 0);
+      });
+      d.addEventListener('dragend', () => { d.style.opacity = ''; });
+      d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('drag-over-voce'); });
+      d.addEventListener('dragleave', () => d.classList.remove('drag-over-voce'));
+      d.addEventListener('drop', e => {
+        e.preventDefault();
+        d.classList.remove('drag-over-voce');
+        if (dragSrcId && dragSrcId !== v.id) {
+          spostaVocePrima(dragSrcId, v.id, g.id);
+        }
+      });
+
+      body.appendChild(d);
+    });
+
+    // Drop zone vuota gruppo
+    const dz = document.createElement('div');
+    dz.className = 'gruppo-drop-zone' + (vociFiltrate.length === 0 ? ' visible' : '');
+    dz.textContent = 'Trascina qui una voce per spostarla in questo gruppo';
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault();
+      dz.classList.remove('drag-over');
+      if (dragSrcId) spostaVoce(dragSrcId, null, g.id);
+    });
+    body.appendChild(dz);
+    gDiv.appendChild(body);
+    container.appendChild(gDiv);
+  });
+  aggiornaStats();
+}
+
+let selezionate = new Set();
+
+function toggleSel(id, checked) {
+  if (checked) selezionate.add(id);
+  else selezionate.delete(id);
+  document.getElementById('voce-' + id).classList.toggle('selezionata', checked);
+  const bar = document.getElementById('unisci-bar');
+  if (selezionate.size >= 2) {
+    bar.classList.add('visible');
+    document.getElementById('unisci-count').textContent = selezionate.size + ' voci selezionate';
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+function annullaSelzione() {
+  selezionate.forEach(id => {
+    const chk = document.getElementById('chk-' + id);
+    if (chk) chk.checked = false;
+    document.getElementById('voce-' + id).classList.remove('selezionata');
+  });
+  selezionate.clear();
+  document.getElementById('unisci-bar').classList.remove('visible');
+}
+
+function unisciVoci() {
+  const ids = Array.from(selezionate).sort((a,b) => a - b);
+  const vociFuse = ids.map(id => voci.find(v => v.id === id));
+  const descUnita = vociFuse.map(v => stato[v.id].descMod || v.descrizione).join('\n');
+  const impTotale = vociFuse.reduce((acc, v) => acc + (stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo), 0);
+  const primaVoce = vociFuse[0];
+  stato[primaVoce.id].descMod = descUnita;
+  stato[primaVoce.id].importoMod = impTotale;
+  stato[primaVoce.id].unita = true;
+  ids.slice(1).forEach(id => { stato[id].eliminata = true; stato[id].unita = true; });
+  annullaSelzione();
+  renderVoci();
+  setTimeout(() => {
+    toggleMod(primaVoce.id);
+  }, 100);
+}
+
+function spostaVoce(voceid, daGruppoId, aGruppoId) {
+  if (daGruppoId === aGruppoId) return;
+  const da = daGruppoId ? gruppi.find(g => g.id === daGruppoId) : gruppi.find(g => g.voci.find(v => v.id === voceid));
+  const a = gruppi.find(g => g.id === aGruppoId);
+  if (!da || !a) return;
+  const idx = da.voci.findIndex(v => v.id === voceid);
+  if (idx === -1) return;
+  const voce = da.voci.splice(idx, 1)[0];
+  voce.gruppo = aGruppoId;
+  a.voci.push(voce);
+  renderVoci();
+}
+
+function spostaVocePrima(srcId, targetId, targetGruppoId) {
+  const srcGruppo = gruppi.find(g => g.voci.find(v => v.id === srcId));
+  const tgtGruppo = gruppi.find(g => g.id === targetGruppoId);
+  if (!srcGruppo || !tgtGruppo) return;
+  const srcIdx = srcGruppo.voci.findIndex(v => v.id === srcId);
+  const voce = srcGruppo.voci.splice(srcIdx, 1)[0];
+  voce.gruppo = targetGruppoId;
+  const tgtIdx = tgtGruppo.voci.findIndex(v => v.id === targetId);
+  tgtGruppo.voci.splice(tgtIdx, 0, voce);
+  renderVoci();
+}
+
+function rinominaGruppo(gid, nome) {
+  const g = gruppi.find(g => g.id === gid);
+  if (g) g.nome = nome;
+}
+
+function elimina(id) { stato[id].eliminata = true; renderVoci(); }
+function ripristina(id) { stato[id].eliminata = false; renderVoci(); }
+
+function toggleMod(id) {
+  const box = document.getElementById('modbox-' + id);
+  box.style.display = box.style.display === 'block' ? 'none' : 'block';
+  if (box.style.display === 'block') document.getElementById('ta-' + id).focus();
+}
+
+function salvaDesc(id, val) {
+  const orig = voci.find(v => v.id === id).descrizione;
+  stato[id].descMod = val.trim() === orig.trim() ? null : val.trim();
+  document.getElementById('desc-' + id).textContent = val;
+  aggiornaClasse(id);
+  aggiornaStats();
+}
+
+function cambiaImp(id, val) {
+  const orig = voci.find(v => v.id === id).importo;
+  const nuovo = parseFloat(val) || 0;
+  stato[id].importoMod = Math.abs(nuovo - orig) < 0.001 ? null : nuovo;
+  aggiornaClasse(id);
+  aggiornaStats();
+}
+
+function cambiaSpese(id, val) {
+  stato[id].spese = parseFloat(val) || 0;
+  aggiornaClasse(id);
+  aggiornaStats();
+}
+
+function cambiaAntic(id, val) {
+  stato[id].antic = parseFloat(val) || 0;
+  aggiornaClasse(id);
+  aggiornaStats();
+}
+
+function aggiornaClasse(id) {
+  const s = stato[id];
+  const el = document.getElementById('voce-' + id);
+  if (!el) return;
+  const isMod = !s.eliminata && (s.descMod !== null || s.importoMod !== null);
+  el.className = 'voce' + (s.eliminata ? ' eliminata' : '') + (isMod ? ' modificata' : '');
+}
+
+async function suggerisciAI(id) {
+  const key = getApiKey();
+  if (!key) { alert('Inserisci la chiave API.'); return; }
+  const voce = voci.find(v => v.id === id);
+  const sugDiv = document.getElementById('sug-' + id);
+  const box = document.getElementById('modbox-' + id);
+  box.style.display = 'block';
+  sugDiv.innerHTML = '<div class="loading-ai">✦ Claude sta elaborando una riscrittura professionale...</div>';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: `Sei l'assistente di uno studio di consulenza del lavoro italiano. Riscrivi questa voce di parcella in italiano professionale, corretto e scorrevole. Mantieni tutte le informazioni tecniche e i riferimenti normativi. Rispondi SOLO con il testo riscritto, senza virgolette né prefissi.\n\nVoce: ${voce.descrizione}` }]
+      })
+    });
+    const data = await res.json();
+    const testo = data.content && data.content[0] ? data.content[0].text.trim() : null;
+    if (testo) {
+      sugDiv.innerHTML = `<div class="sug-label">Suggerimento Claude (clicca per applicare):</div><div class="sug-box" onclick="applicaSug(${id}, this.dataset.testo)" data-testo="${testo.replace(/"/g,'&quot;')}">${testo}</div>`;
+    } else {
+      sugDiv.innerHTML = '<div class="loading-ai">Nessun suggerimento generato.</div>';
+    }
+  } catch(e) {
+    sugDiv.innerHTML = '<div class="loading-ai">Errore: ' + e.message + '</div>';
+  }
+}
+
+function applicaSug(id, testo) {
+  const ta = document.getElementById('ta-' + id);
+  ta.value = testo;
+  salvaDesc(id, testo);
+}
+
+function aggiornaStats() {
+  const elim = Object.values(stato).filter(s => s.eliminata).length;
+  const mod = Object.values(stato).filter(s => !s.eliminata && (s.descMod !== null || s.importoMod !== null)).length;
+  const tot = voci.reduce((acc, v) => {
+    if (stato[v.id].eliminata) return acc;
+    const imp = stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo;
+    return acc + imp + (stato[v.id].spese || 0) + (stato[v.id].antic || 0);
+  }, 0);
+  document.getElementById('s-tot').textContent = voci.length;
+  document.getElementById('s-elim').textContent = elim;
+  document.getElementById('s-mod').textContent = mod;
+  document.getElementById('s-importo').textContent = tot.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function esportaExcel() {
+  // Ordine originale: sort per id assegnato al momento dell'estrazione
+  const vociFlatOrig = [...voci].sort((a, b) => a.id - b.id);
+
+  // Mappa: id voce unita principale → lista id voci assorbite
+  const vociAssorbite = {};
+  vociFlatOrig.forEach(v => {
+    const s = stato[v.id];
+    if (s.eliminata && s.unita) {
+      // Trova la voce principale (quella con unita=true ma non eliminata con stesso gruppo temporale)
+      // La principale è quella con descMod che contiene il testo di questa
+      vociFlatOrig.forEach(vp => {
+        if (!stato[vp.id].eliminata && stato[vp.id].unita && stato[vp.id].descMod && stato[vp.id].descMod.includes(v.descrizione)) {
+          if (!vociAssorbite[vp.id]) vociAssorbite[vp.id] = [];
+          vociAssorbite[vp.id].push(v);
+        }
+      });
+    }
+  });
+
+  let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11pt; }
+  table { border-collapse: collapse; width: 100%; }
+  th { background: #2c5282; color: white; padding: 6px 8px; border: 1px solid #1a365d; font-size: 10pt; text-align: left; }
+  td { padding: 5px 8px; border: 1px solid #d1d5db; vertical-align: top; font-size: 10pt; }
+  .invariata { background: #ffffff; }
+  .modificata { background: #fffbeb; }
+  .eliminata { background: #fff5f5; color: #7f1d1d; text-decoration: line-through; }
+  .unita-principale { background: #eff6ff; }
+  .unita-assorbita { background: #e0f2fe; color: #0369a1; }
+  .azione { font-weight: bold; white-space: nowrap; }
+  .az-inv { color: #166534; }
+  .az-mod { color: #92400e; }
+  .az-el { color: #991b1b; }
+  .az-uni { color: #1e40af; }
+  .totale-row { background: #f0fdf4; font-weight: bold; }
+  .orig { color: #6b7280; font-style: italic; font-size: 9pt; }
+  .legenda { margin-top: 30px; }
+  .leg-box { display: inline-block; width: 18px; height: 14px; border: 1px solid #ccc; vertical-align: middle; margin-right: 6px; }
+</style>
+</head><body>
+<h2 style="font-family:Arial;color:#2c5282;">Istruzioni Valorizzazioni — ${clienteNome}</h2>
+<p style="font-family:Arial;font-size:10pt;color:#6b7280;">Elaborato il ${new Date().toLocaleDateString('it-IT')} &nbsp;|&nbsp; Segui l'ordine numerico per aggiornare Zucchetti</p>
+<table>
+<tr>
+  <th style="width:30px">#</th>
+  <th style="width:80px">Data</th>
+  <th style="width:60px">Codice</th>
+  <th style="width:130px">Azione</th>
+  <th style="width:280px">Descrizione originale</th>
+  <th style="width:280px">Descrizione definitiva</th>
+  <th style="width:80px">Onor. orig.</th>
+  <th style="width:80px">Onor. def.</th>
+  <th style="width:70px">Spese</th>
+  <th style="width:70px">Antic.</th>
+  <th style="width:80px">Totale</th>
+  <th style="width:200px">Istruzione per dipendente</th>
+</tr>`;
+
+  let n = 0;
+  vociFlatOrig.forEach(v => {
+    const s = stato[v.id];
+    const descDef = s.descMod !== null ? s.descMod : v.descrizione;
+    const impDef = s.importoMod !== null ? s.importoMod : v.importo;
+    const spese = s.spese || 0;
+    const antic = s.antic || 0;
+    n++;
+
+    let classe, azioneHtml, istruzione, descOrigHtml, descDefHtml, impOrigHtml, impDefHtml;
+
+    if (s.eliminata && s.unita) {
+      classe = 'unita-assorbita';
+      azioneHtml = '<span class="azione az-uni">🔗 UNITA (assorbita)</span>';
+      istruzione = 'Voce assorbita nella riga unificata sopra — NON modificare in Zucchetti';
+      descOrigHtml = v.descrizione;
+      descDefHtml = '—';
+      impOrigHtml = '€ ' + v.importo.toFixed(2);
+      impDefHtml = '—';
+    } else if (s.eliminata) {
+      classe = 'eliminata';
+      azioneHtml = '<span class="azione az-el">✕ ELIMINA</span>';
+      istruzione = 'Eliminare questa voce in Zucchetti';
+      descOrigHtml = v.descrizione;
+      descDefHtml = '—';
+      impOrigHtml = '€ ' + v.importo.toFixed(2);
+      impDefHtml = '—';
+    } else if (s.unita && vociAssorbite[v.id]) {
+      classe = 'unita-principale';
+      const nAssorbite = vociAssorbite[v.id].length;
+      azioneHtml = '<span class="azione az-uni">🔗 UNITA (' + (nAssorbite+1) + ' voci)</span>';
+      istruzione = 'Aggiornare con il testo e importo definitivi. Le ' + nAssorbite + ' voci successive (evidenziate in azzurro) vanno eliminate.';
+      descOrigHtml = '<span class="orig">' + v.descrizione + '</span><br><strong>→ ' + descDef.replace(/\n/g, '<br>') + '</strong>';
+      descDefHtml = descDef.replace(/\n/g, '<br>');
+      impOrigHtml = '€ ' + v.importo.toFixed(2);
+      impDefHtml = '<strong>€ ' + impDef.toFixed(2) + '</strong>';
+    } else if (s.descMod !== null || s.importoMod !== null) {
+      classe = 'modificata';
+      let tipMod = s.descMod !== null && s.importoMod !== null ? 'TESTO + IMPORTO' : s.descMod !== null ? 'TESTO' : 'IMPORTO';
+      azioneHtml = '<span class="azione az-mod">✏️ MODIFICA ' + tipMod + '</span>';
+      istruzione = 'Aggiornare ' + tipMod.toLowerCase() + ' in Zucchetti';
+      descOrigHtml = s.descMod !== null ? '<span class="orig">' + v.descrizione + '</span><br><strong>→ ' + descDef + '</strong>' : v.descrizione;
+      descDefHtml = descDef;
+      impOrigHtml = s.importoMod !== null ? '<span class="orig">€ ' + v.importo.toFixed(2) + '</span>' : '€ ' + v.importo.toFixed(2);
+      impDefHtml = s.importoMod !== null ? '<strong>€ ' + impDef.toFixed(2) + '</strong>' : '€ ' + impDef.toFixed(2);
+    } else {
+      classe = 'invariata';
+      azioneHtml = '<span class="azione az-inv">✓ INVARIATA</span>';
+      istruzione = '';
+      descOrigHtml = v.descrizione;
+      descDefHtml = v.descrizione;
+      impOrigHtml = '€ ' + v.importo.toFixed(2);
+      impDefHtml = '€ ' + impDef.toFixed(2);
+    }
+
+    html += `<tr class="${classe}">
+      <td style="text-align:center;color:#9ca3af">${n}</td>
+      <td>${v.data}</td>
+      <td style="font-family:monospace">${v.codice}</td>
+      <td>${azioneHtml}</td>
+      <td>${descOrigHtml}</td>
+      <td>${s.eliminata ? '<span style="color:#9ca3af">—</span>' : descDefHtml}</td>
+      <td style="text-align:right">${impOrigHtml}</td>
+      <td style="text-align:right">${s.eliminata ? '—' : impDefHtml}</td>
+      <td style="text-align:right">${s.eliminata ? '—' : (spese > 0 ? '€ '+spese.toFixed(2) : '—')}</td>
+      <td style="text-align:right">${s.eliminata ? '—' : (antic > 0 ? '€ '+antic.toFixed(2) : '—')}</td>
+      <td style="text-align:right">${s.eliminata ? '—' : '<strong>€ '+(impDef+spese+antic).toFixed(2)+'</strong>'}</td>
+      <td style="font-size:9pt;color:#374151">${istruzione}</td>
+    </tr>`;
+  });
+
+  const totImp = vociFlatOrig.reduce((a, v) => (stato[v.id].eliminata) ? a : a + (stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo), 0);
+  const totSpese = vociFlatOrig.reduce((a, v) => stato[v.id].eliminata ? a : a + (stato[v.id].spese || 0), 0);
+  const totAntic = vociFlatOrig.reduce((a, v) => stato[v.id].eliminata ? a : a + (stato[v.id].antic || 0), 0);
+
+  html += `<tr class="totale-row">
+    <td colspan="7" style="text-align:right">TOTALE DEFINITIVO</td>
+    <td style="text-align:right">€ ${totImp.toFixed(2)}</td>
+    <td style="text-align:right">€ ${totSpese.toFixed(2)}</td>
+    <td style="text-align:right">€ ${totAntic.toFixed(2)}</td>
+    <td style="text-align:right">€ ${(totImp+totSpese+totAntic).toFixed(2)}</td>
+    <td></td>
+  </tr></table>
+
+  <div class="legenda">
+    <p style="font-family:Arial;font-size:10pt;font-weight:bold">Legenda:</p>
+    <p style="font-family:Arial;font-size:10pt"><span class="leg-box" style="background:#ffffff"></span> Bianco = INVARIATA &nbsp;&nbsp;
+    <span class="leg-box" style="background:#fffbeb"></span> Giallo = MODIFICATA &nbsp;&nbsp;
+    <span class="leg-box" style="background:#fff5f5"></span> Rosa = ELIMINATA &nbsp;&nbsp;
+    <span class="leg-box" style="background:#eff6ff"></span> Blu chiaro = UNITA (principale) &nbsp;&nbsp;
+    <span class="leg-box" style="background:#e0f2fe"></span> Azzurro = UNITA (assorbita — eliminare)</p>
+  </div>
+</body></html>`;
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'istruzioni_' + clienteNome.replace(/\s+/g, '_').toLowerCase() + '_' + new Date().toISOString().slice(0,10) + '.xls';
+  a.click();
+}
+
+async function suggerisciRaggruppamenti() {
+  const key = getApiKey();
+  if (!key) { alert('Inserisci la chiave API.'); return; }
+  const btn = document.getElementById('btn-suggerisci');
+  btn.textContent = '⏳ Analisi in corso...';
+  btn.disabled = true;
+
+  const elenco = voci.filter(v => !stato[v.id].eliminata).map(v => ({
+    id: v.id,
+    desc: stato[v.id].descMod || v.descrizione,
+    importo: stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo
+  }));
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: `Sei l'assistente di uno studio di consulenza del lavoro. Analizza queste voci di valorizzazione e individua gruppi di voci simili che potrebbero essere unite in una voce unica (es. più F24 di mesi diversi, più MUT di mesi diversi, più denunce infortuni, ecc.).
+
+Voci:
+${elenco.map(v => `ID:${v.id} | ${v.desc} | €${v.importo}`).join('\n')}
+
+Rispondi SOLO con un JSON così:
+[
+  {
+    "ids": [1, 5, 12],
+    "motivazione": "3 elaborazioni MUT per i mesi di gennaio, febbraio e marzo 2026",
+    "testo_proposto": "Inserimento dati MUT (modulo unico telematico cassa edile della provincia di Venezia) dei dati retributivi degli operai edili suddivisi per cantiere per i mesi di gennaio, febbraio e marzo 2026.",
+    "importo_totale": 360.00
+  }
+]
+Solo gruppi con almeno 2 voci chiaramente simili. Se non ce ne sono, rispondi con [].` }]
+      })
+    });
+    const data = await res.json();
+    const testo = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+    const suggerimenti = JSON.parse(testo);
+    mostraSuggerimenti(suggerimenti);
+  } catch(e) {
+    alert('Errore: ' + e.message);
+  }
+  btn.textContent = '✦ Suggerisci voci da unire';
+  btn.disabled = false;
+}
+
+function mostraSuggerimenti(suggerimenti) {
+  const div = document.getElementById('suggerimenti-box');
+  if (!suggerimenti.length) {
+    div.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--text-muted);font-family:Arial">Nessuna voce simile trovata da raggruppare.</div>';
+    div.style.display = 'block';
+    return;
+  }
+  let html = '';
+  suggerimenti.forEach((s, i) => {
+    html += `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;background:var(--surface)">
+      <div style="font-size:12px;color:var(--text-muted);font-family:Arial;margin-bottom:6px">${s.motivazione}</div>
+      <div style="font-size:13px;color:var(--accent);font-family:Arial;margin-bottom:8px;font-style:italic">"${s.testo_proposto}"</div>
+      <div style="font-size:12px;color:var(--text-muted);font-family:Arial;margin-bottom:8px">Totale proposto: <strong>€ ${s.importo_totale.toFixed(2)}</strong> — voci: ${s.ids.join(', ')}</div>
+      <button class="btn btn-ai" data-idx="${i}" onclick="applicaSuggerimento(this.dataset.idx)">⊕ Applica questo raggruppamento</button>
+    </div>`;
+  });
+  div.innerHTML = html;
+  div.style.display = 'block';
+  window._suggerimenti = suggerimenti;
+}
+
+function applicaSuggerimento(idx) {
+  const s = window._suggerimenti[parseInt(idx)];
+  if (!s) return;
+  const ids = s.ids;
+  const testoProposto = s.testo_proposto;
+  const importoTotale = s.importo_totale;
+  const primoId = ids[0];
+  stato[primoId].descMod = testoProposto;
+  stato[primoId].importoMod = importoTotale;
+  stato[primoId].unita = true;
+  ids.slice(1).forEach(id => { stato[id].eliminata = true; stato[id].unita = true; });
+  document.getElementById('suggerimenti-box').style.display = 'none';
+  renderVoci();
+}
+
+function nuovoFile() {
+  voci = []; stato = {}; gruppi = []; clienteNome = '';
+  nascondi('editor-section');
+  mostra('upload-section');
+  document.getElementById('file-input').value = '';
+}
+
+function mostra(id) { document.getElementById(id).classList.remove('hidden'); }
+function nascondi(id) { document.getElementById(id).classList.add('hidden'); }
+function setLoading(msg) { document.getElementById('loading-msg').textContent = msg; }
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ====================================================================
+// MODULO PARCELLE STORICHE & PROPOSTA PREZZI
+// ====================================================================
+
+const VOCI_CANONICHE = [
+  // Ricorrente mensile
+  'Cedolino dipendente',
+  'Cedolino apprendista',
+  'Cedolino co.co.co./collaboratore',
+  'Elaborazione F24',
+  'Trasmissione Uniemens',
+  'Libro Unico del Lavoro (LUL)',
+  'Gestione paghe forfait mensile',
+  // Adempimenti annuali
+  'Certificazione Unica (CU)',
+  'Modello 770',
+  'Autoliquidazione INAIL',
+  'Conguaglio fiscale di fine anno',
+  'Modello OT23',
+  'Modello redditi sostituti d\'imposta',
+  // Eventi rapporto di lavoro
+  'Assunzione (Unilav)',
+  'Cessazione (Unilav)',
+  'Trasformazione/proroga rapporto',
+  'Lettera assunzione/contratto individuale',
+  'Comunicazioni obbligatorie varie',
+  // Eventi straordinari
+  'Denuncia infortunio INAIL',
+  'Pratica malattia/maternità',
+  'Gestione TFR / fondo pensione',
+  'Pratica NASpI/disoccupazione',
+  'Pratica Cassa Edile / MUT',
+  'Adempimenti privacy/sicurezza lavoro',
+  // Consulenza
+  'Consulenza del lavoro',
+  'Pareri scritti',
+  'Verifica contratti',
+  'Assistenza ispezioni/contenzioso',
+  'Conciliazioni',
+  'Calcolo costo del lavoro / preventivi',
+  // Altri
+  'Spese postali e bolli',
+  'Anticipazioni',
+  'Altro / Voce libera'
+];
+
+// Stato globale modulo storico
+let parcelleStoriche = []; // [{id, file, nome, status, voci:[], data:'', numero:'', periodo:''}]
+let vociConsolidate = [];  // [{id, descrizione, voceCanonica, frequenza, importoMedio, occorrenze, mesi:[], importi:[], totaleAnno, varia, varazione}]
+let profiloCliente = '';
+let matching = []; // [{idConsolidato, voceNuovaId, motivazione, importoProposto, status}]
+let proStorId = 1;
+
+function toggleStorico() {
+  document.getElementById('storico-header').classList.toggle('open');
+  document.getElementById('storico-body').classList.toggle('open');
+}
+
+// --- Drag&drop per parcelle storiche ---
+const storicoDrop = document.getElementById('storico-drop');
+storicoDrop.addEventListener('dragover', e => { e.preventDefault(); storicoDrop.classList.add('drag'); });
+storicoDrop.addEventListener('dragleave', () => storicoDrop.classList.remove('drag'));
+storicoDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  storicoDrop.classList.remove('drag');
+  if (e.dataTransfer.files.length) aggiungiParcelle(e.dataTransfer.files);
+});
+
+function aggiungiParcelle(files) {
+  for (const f of files) {
+    if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) continue;
+    parcelleStoriche.push({
+      id: 'ps' + (proStorId++),
+      file: f,
+      nome: f.name,
+      status: 'attesa',
+      voci: [],
+      data: '',
+      numero: '',
+      periodo: '',
+      errore: null
+    });
+  }
+  renderParcelleList();
+  document.getElementById('storico-input').value = '';
+}
+
+function rimuoviParcella(id) {
+  parcelleStoriche = parcelleStoriche.filter(p => p.id !== id);
+  renderParcelleList();
+}
+
+function renderParcelleList() {
+  const div = document.getElementById('storico-files');
+  if (!parcelleStoriche.length) {
+    div.innerHTML = '';
+    document.getElementById('btn-estrai').disabled = true;
+    return;
+  }
+  div.innerHTML = parcelleStoriche.map(p => {
+    let stTxt, stCls;
+    if (p.status === 'attesa') { stTxt = 'in attesa'; stCls = 'status-attesa'; }
+    else if (p.status === 'elab') { stTxt = 'estrazione...'; stCls = 'status-elab'; }
+    else if (p.status === 'ok') {
+      const nPar = p.parcelle?.length || 1;
+      stTxt = nPar > 1 ? `${nPar} parcelle · ${p.voci.length} voci` : `${p.voci.length} voci`;
+      stCls = 'status-ok';
+    }
+    else { stTxt = 'errore'; stCls = 'status-err'; }
+    const errTooltip = p.status === 'err' && p.errore ? ` title="${p.errore.replace(/"/g,'&quot;')}"` : '';
+    const errClick = p.status === 'err' && p.errore ? ` onclick="alert('Errore: '+${JSON.stringify(p.errore).replace(/'/g,'&#39;')})" style="cursor:help"` : '';
+    const troncatoBadge = p.troncato ? `<span style="font-size:10px;background:var(--amber-light);color:var(--amber);padding:1px 6px;border-radius:99px;font-weight:bold" title="Risposta troncata: recuperate solo le parcelle complete">⚠ parziale</span>` : '';
+    const cumulativoBadge = (p.tipo === 'cumulativo') ? `<span style="font-size:10px;background:var(--accent-light);color:var(--accent);padding:1px 6px;border-radius:99px;font-weight:bold">cumulativo</span>` : '';
+    return `<div class="storico-file">
+      <span>📄</span>
+      <span class="storico-file-name">${p.nome}</span>
+      ${cumulativoBadge}
+      ${troncatoBadge}
+      ${p.status === 'ok' && p.data ? `<span style="color:var(--text-faint);font-size:11px">${p.data}${p.numero ? ' · n. '+p.numero : ''}</span>` : ''}
+      <span class="storico-file-status ${stCls}"${errTooltip}${errClick}>${stTxt}</span>
+      ${p.status !== 'elab' ? `<button class="storico-file-remove" onclick="rimuoviParcella('${p.id}')" title="Rimuovi">✕</button>` : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('btn-estrai').disabled = parcelleStoriche.every(p => p.status === 'ok' || p.status === 'elab');
+}
+
+async function estraiTutte() {
+  const key = getApiKey();
+  if (!key) { alert('Inserisci la chiave API.'); return; }
+  const btn = document.getElementById('btn-estrai');
+  btn.disabled = true;
+  const progress = document.getElementById('estrai-progress');
+  const daFare = parcelleStoriche.filter(p => p.status !== 'ok');
+  let done = 0;
+  for (const p of daFare) {
+    progress.textContent = `Estrazione ${done+1}/${daFare.length}: ${p.nome}...`;
+    p.status = 'elab';
+    p.errore = null;
+    renderParcelleList();
+    try {
+      const dati = await estraiSingolaParcella(p.file, key);
+      // Nuovo formato: { tipo, n_parcelle, parcelle:[{data,numero,periodo,voci}] }
+      // Vecchio fallback: { data, numero, periodo, voci }
+      if (dati.parcelle && Array.isArray(dati.parcelle)) {
+        p.parcelle = dati.parcelle;
+        p.tipo = dati.tipo || (dati.parcelle.length > 1 ? 'cumulativo' : 'singola');
+        p.troncato = !!dati._troncato;
+        // Conteggi aggregati
+        p.voci = dati.parcelle.flatMap(par => par.voci || []);
+        p.data = dati.parcelle[0]?.data || '';
+        p.numero = dati.parcelle[0]?.numero || '';
+        p.periodo = dati.parcelle[0]?.periodo || '';
+      } else {
+        // Fallback formato vecchio (compatibilità)
+        p.parcelle = [{ data: dati.data, numero: dati.numero, periodo: dati.periodo, voci: dati.voci || [] }];
+        p.tipo = 'singola';
+        p.troncato = false;
+        p.voci = dati.voci || [];
+        p.data = dati.data || '';
+        p.numero = dati.numero || '';
+        p.periodo = dati.periodo || '';
+      }
+      p.status = 'ok';
+    } catch (e) {
+      p.status = 'err';
+      p.errore = e.message;
+      console.error('Errore estrazione', p.nome, e);
+    }
+    done++;
+    renderParcelleList();
+  }
+  const totParcelle = parcelleStoriche.filter(p => p.status === 'ok').reduce((a, p) => a + (p.parcelle?.length || 1), 0);
+  const totVoci = parcelleStoriche.reduce((a, p) => a + (p.voci?.length || 0), 0);
+  const ok = parcelleStoriche.filter(p => p.status === 'ok').length;
+  const err = parcelleStoriche.filter(p => p.status === 'err').length;
+  const troncati = parcelleStoriche.filter(p => p.troncato).length;
+  let msg = `Completato: ${ok} PDF processati, ${totParcelle} parcelle estratte (${totVoci} righe totali)`;
+  if (err > 0) msg += `, ${err} errori`;
+  if (troncati > 0) msg += `, ${troncati} con recupero parziale ⚠`;
+  progress.textContent = msg + '.';
+  btn.disabled = false;
+  if (ok > 0) document.getElementById('step-consolida').classList.remove('hidden');
+}
+
+async function estraiSingolaParcella(file, key) {
+  const b64 = await fileToBase64(file);
+  const prompt = `Sei l'assistente di uno studio italiano di consulenza del lavoro. Analizza questo PDF: può contenere UNA singola parcella/proforma oppure PIU' parcelle/proforma raggruppate in un unico documento cumulativo (es. report "Proforma emesse" di Zucchetti).
+
+Restituisci SOLO un JSON con questa struttura ESATTA:
+{
+  "tipo": "singola"  oppure  "cumulativo",
+  "n_parcelle": numero di parcelle trovate (1 se singola),
+  "parcelle": [
+    {
+      "data": "GG/MM/AAAA emissione",
+      "numero": "numero parcella/proforma se presente",
+      "periodo": "periodo di riferimento (es. 'Gennaio 2025', 'Q1 2025', 'Anno 2025')",
+      "voci": [
+        { "descrizione": "descrizione voce", "quantita": 1, "importo_unitario": 0.00, "importo_totale": 0.00 }
+      ]
+    }
+  ]
+}
+
+Regole importanti:
+- Se è cumulativo, separa CORRETTAMENTE ogni parcella in un elemento dell'array "parcelle"
+- Ogni parcella ha le sue voci, sua data, suo numero
+- Estrai ogni riga di voce, anche quelle a importo zero, MA NON includere righe di totale generale, IVA, ritenute, contributi cassa
+- Se manca la quantità assumi 1
+- Periodo: se la parcella è mensile indica il mese (es. "Gennaio 2025"). Se trimestrale "Q1 2025". Se annuale "Anno 2025". Se non chiaro lascia stringa vuota.
+- SII CONCISO nelle descrizioni: rimuovi nomi propri di dipendenti se presenti (es. "Cedolino Mario Rossi" → "Cedolino dipendente") per ridurre la lunghezza della risposta
+- Restituisci SOLO il JSON, nessun testo prima o dopo, nessun markdown`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 16000,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  let testo = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+  const stopReason = data.stop_reason;
+
+  // Tentativo di parsing diretto
+  try {
+    const parsed = JSON.parse(testo);
+    return parsed;
+  } catch (parseErr) {
+    // Se è stato troncato (max_tokens raggiunto), provo a recuperare le parcelle complete
+    if (stopReason === 'max_tokens' || parseErr.message.includes('Unterminated')) {
+      const recuperato = recuperaJsonParziale(testo);
+      if (recuperato && recuperato.parcelle && recuperato.parcelle.length > 0) {
+        recuperato._troncato = true;
+        return recuperato;
+      }
+    }
+    throw new Error(`Risposta non parsificabile (${parseErr.message}). stop_reason=${stopReason}. Possibile causa: PDF troppo grande / troppe voci. Prova a suddividere il file.`);
+  }
+}
+
+// Tenta di recuperare un JSON troncato estraendo solo le parcelle COMPLETE
+function recuperaJsonParziale(testo) {
+  try {
+    // Cerco l'apertura "parcelle": [ e taglio il testo da lì
+    const idx = testo.indexOf('"parcelle"');
+    if (idx === -1) return null;
+    const inizioArray = testo.indexOf('[', idx);
+    if (inizioArray === -1) return null;
+
+    // Estraggo i singoli oggetti parcella bilanciando { e }
+    const parcelleComplete = [];
+    let i = inizioArray + 1;
+    let depth = 0;
+    let startObj = -1;
+    let inString = false;
+    let escape = false;
+    while (i < testo.length) {
+      const ch = testo[i];
+      if (escape) { escape = false; i++; continue; }
+      if (ch === '\\') { escape = true; i++; continue; }
+      if (ch === '"' && !escape) inString = !inString;
+      if (!inString) {
+        if (ch === '{') {
+          if (depth === 0) startObj = i;
+          depth++;
+        } else if (ch === '}') {
+          depth--;
+          if (depth === 0 && startObj !== -1) {
+            const objText = testo.substring(startObj, i + 1);
+            try {
+              const obj = JSON.parse(objText);
+              parcelleComplete.push(obj);
+            } catch (e) { /* skip */ }
+            startObj = -1;
+          }
+        }
+      }
+      i++;
+    }
+    if (parcelleComplete.length === 0) return null;
+    return {
+      tipo: parcelleComplete.length > 1 ? 'cumulativo' : 'singola',
+      n_parcelle: parcelleComplete.length,
+      parcelle: parcelleComplete
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+// ============ STEP 2: CONSOLIDAMENTO ============
+
+async function consolidaVoci() {
+  const key = getApiKey();
+  if (!key) { alert('Inserisci la chiave API.'); return; }
+  const btn = document.getElementById('btn-consolida');
+  btn.disabled = true;
+  const progress = document.getElementById('consolida-progress');
+  progress.textContent = 'Consolidamento in corso (può richiedere qualche secondo)...';
+
+  // Costruisci elenco di tutte le righe con riferimento alla parcella di provenienza
+  // Itero su ogni singola parcella (anche quelle dentro a cumulativi)
+  const tutteRighe = [];
+  parcelleStoriche.filter(p => p.status === 'ok').forEach(p => {
+    (p.parcelle || []).forEach(par => {
+      (par.voci || []).forEach(v => {
+        tutteRighe.push({
+          descrizione: v.descrizione,
+          importo: v.importo_totale || v.importo_unitario || 0,
+          quantita: v.quantita || 1,
+          periodo: par.periodo || par.data || '?',
+          dataParcella: par.data || ''
+        });
+      });
+    });
+  });
+
+  if (!tutteRighe.length) {
+    progress.textContent = 'Nessuna voce estratta da consolidare.';
+    btn.disabled = false;
+    return;
+  }
+
+  const prompt = `Sei l'assistente di uno studio italiano di consulenza del lavoro. Ti fornisco TUTTE le righe estratte dalle parcelle dell'anno scorso di un cliente. Devi CONSOLIDARE queste righe in VOCI UNICHE, raggruppando righe identiche o sostanzialmente simili (es. "Elaborazione cedolino Mario Rossi" gennaio, febbraio, marzo... vanno raggruppate come UNA voce ricorrente mensile).
+
+Per ogni voce consolidata determina:
+1. una descrizione canonica chiara
+2. la voce_canonica scelta dall'elenco fornito (la più pertinente)
+3. la frequenza: "mensile" / "trimestrale" / "annuale" / "una_tantum" / "sporadica"
+4. l'importo unitario (per singola occorrenza): se varia tra mesi, calcola la media
+5. il numero di occorrenze (quante volte appare nell'anno)
+6. l'elenco dei mesi in cui compare (se desumibile dai periodi delle parcelle)
+7. l'elenco dei singoli importi unitari mese per mese (per evidenziare variazioni)
+8. il totale anno (somma di tutti gli importi di questa voce nell'anno)
+9. "varia": true se gli importi unitari non sono tutti uguali, false se costanti
+10. "variazione_note": se varia, una nota tipo "aumento da €50 a €55 da giugno"
+
+Elenco voci_canoniche da usare per il campo voce_canonica:
+${VOCI_CANONICHE.map(v => '- '+v).join('\n')}
+(Se nessuna è davvero pertinente, usa "Altro / Voce libera")
+
+Righe da consolidare (ognuna con descrizione, importo, quantità, periodo di provenienza):
+${tutteRighe.map((r, i) => `[${i+1}] ${r.descrizione} | €${r.importo} | q.${r.quantita} | periodo:${r.periodo}`).join('\n')}
+
+Rispondi SOLO con JSON:
+{
+  "voci_consolidate": [
+    {
+      "descrizione": "Elaborazione cedolino dipendente",
+      "voce_canonica": "Cedolino dipendente",
+      "frequenza": "mensile",
+      "importo_unitario": 12.50,
+      "occorrenze": 12,
+      "mesi": ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"],
+      "importi_mensili": [12.50, 12.50, 12.50, 12.50, 12.50, 13.00, 13.00, 13.00, 13.00, 13.00, 13.00, 13.00],
+      "totale_anno": 153.00,
+      "varia": true,
+      "variazione_note": "aumento da €12.50 a €13.00 da giugno"
+    }
+  ]
+}
+Nessun testo prima o dopo il JSON.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const testo = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(testo);
+    let nextId = 1;
+    vociConsolidate = (parsed.voci_consolidate || []).map(v => ({ id: 'vc'+(nextId++), ...v }));
+    renderConsolidato();
+    progress.textContent = `${vociConsolidate.length} voci consolidate da ${tutteRighe.length} righe grezze.`;
+    document.getElementById('step-profilo').classList.remove('hidden');
+  } catch (e) {
+    progress.textContent = 'Errore: ' + e.message;
+  }
+  btn.disabled = false;
+}
+
+function renderConsolidato() {
+  const div = document.getElementById('consolidato-output');
+  if (!vociConsolidate.length) { div.innerHTML = ''; return; }
+  let html = `<table class="consolidato-tabella">
+    <thead><tr>
+      <th>Descrizione</th>
+      <th>Voce canonica</th>
+      <th>Frequenza</th>
+      <th>Importo unit.</th>
+      <th>Occ.</th>
+      <th>Totale anno</th>
+    </tr></thead><tbody>`;
+  vociConsolidate.forEach(v => {
+    const freqCls = 'freq-' + (v.frequenza || '').replace('_','');
+    const varia = v.varia && v.importi_mensili && v.importi_mensili.length > 1;
+    let dettaglioVar = '';
+    if (varia) {
+      const coppieMesi = (v.mesi || []).map((m, i) => `${m}: €${(v.importi_mensili[i]||0).toFixed(2)}`).join(' · ');
+      dettaglioVar = `<div class="varia-dettaglio">${v.variazione_note || ''}<br>${coppieMesi}</div>`;
+    }
+    html += `<tr>
+      <td><strong>${v.descrizione}</strong>${dettaglioVar}</td>
+      <td><span class="canonica-tag">${v.voce_canonica || '—'}</span></td>
+      <td><span class="freq-tag ${freqCls}">${v.frequenza || '—'}</span></td>
+      <td style="text-align:right">€ ${(v.importo_unitario||0).toFixed(2)}</td>
+      <td style="text-align:center">${v.occorrenze || 1}</td>
+      <td style="text-align:right"><strong>€ ${(v.totale_anno||0).toFixed(2)}</strong></td>
+    </tr>`;
+  });
+  const totGen = vociConsolidate.reduce((a, v) => a + (v.totale_anno || 0), 0);
+  html += `<tr style="background:var(--success-light);font-weight:bold"><td colspan="5" style="text-align:right">TOTALE ANNO</td><td style="text-align:right">€ ${totGen.toFixed(2)}</td></tr>`;
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+
+// ============ STEP 3: PROFILO CLIENTE ============
+
+async function generaProfilo() {
+  const key = getApiKey();
+  if (!key) { alert('Inserisci la chiave API.'); return; }
+  const btn = document.getElementById('btn-profilo');
+  btn.disabled = true;
+  const progress = document.getElementById('profilo-progress');
+  progress.textContent = 'Generazione profilo cliente...';
+
+  const totAnno = vociConsolidate.reduce((a, v) => a + (v.totale_anno || 0), 0);
+  const nParcelle = parcelleStoriche.filter(p => p.status === 'ok').reduce((a, p) => a + (p.parcelle?.length || 1), 0);
+  const elenco = vociConsolidate.map(v => `- ${v.descrizione} [${v.voce_canonica}] | freq:${v.frequenza} | €${v.importo_unitario}/u × ${v.occorrenze} = €${v.totale_anno}${v.varia ? ' (variabile: '+(v.variazione_note||'')+')' : ''}`).join('\n');
+
+  const prompt = `Sei l'assistente di uno studio italiano di consulenza del lavoro. Devi scrivere un breve PROFILO DI PARCELLAZIONE del cliente sulla base delle voci consolidate dell'anno scorso. Il profilo serve a un collega che dovrà rifare le parcelle quest'anno e ha bisogno di capire RAPIDAMENTE come è stato parcellato questo cliente in passato.
+
+Dati cliente:
+- Cliente: ${clienteNome || 'cliente'}
+- Numero parcelle estratte: ${nParcelle}
+- Totale anno: € ${totAnno.toFixed(2)}
+
+Voci consolidate:
+${elenco}
+
+Scrivi un profilo di 8-15 righe in italiano professionale che copra:
+1. Modalità di parcellazione (mensile dettagliata? trimestrale? forfait? mista?)
+2. Logica di raggruppamento (voci dettagliate riga per riga oppure aggregate?)
+3. Stagionalità rilevata (quando sono fatturati gli adempimenti annuali: CU, 770, INAIL, conguaglio)
+4. Eventuali sconti o tariffe agevolate desumibili (importi unitari sotto le tariffe standard?)
+5. Variazioni di prezzo mid-year se presenti
+6. Voci una tantum / straordinarie più rilevanti
+7. Note critiche o anomalie
+
+Scrivi in forma narrativa scorrevole, in italiano professionale. NO bullet point, NO titoli markdown. Solo paragrafi. Massimo 250 parole.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    profiloCliente = data.content[0].text.trim();
+    document.getElementById('profilo-output').innerHTML = `<div class="profilo-card">${profiloCliente}</div>`;
+    progress.textContent = 'Profilo generato.';
+    document.getElementById('step-matching').classList.remove('hidden');
+  } catch (e) {
+    progress.textContent = 'Errore: ' + e.message;
+  }
+  btn.disabled = false;
+}
+
+// ============ STEP 4: MATCHING ============
+
+async function proponiMatching() {
+  const key = getApiKey();
+  if (!key) { alert('Inserisci la chiave API.'); return; }
+  if (!voci.length) { alert('Carica prima le valorizzazioni nuove (in alto).'); return; }
+  const btn = document.getElementById('btn-matching');
+  btn.disabled = true;
+  const progress = document.getElementById('matching-progress');
+  progress.textContent = 'Proposta matching in corso...';
+
+  // Costruisco listino voci nuove (non eliminate)
+  const vociNuove = voci.filter(v => !stato[v.id].eliminata).map(v => ({
+    id: v.id,
+    descrizione: stato[v.id].descMod || v.descrizione,
+    importo: stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo
+  }));
+
+  const prompt = `Sei l'assistente di uno studio di consulenza del lavoro. Devi abbinare le voci consolidate dello storico (parcelle dell'anno scorso) con le voci del listino nuovo (valorizzazioni di quest'anno).
+
+Per ogni voce dello storico:
+- trova la voce nuova del listino più simile per natura e contenuto
+- spiega in 1 riga perché è quella la scelta
+- proponi un importo: di norma è l'importo unitario nuovo del listino × n. occorrenze storiche, ma se nello storico c'è uno sconto evidente (importo molto sotto la tariffa nuova standard) segnala la cosa e proponi di mantenerlo
+
+Se una voce storica non trova corrispondenza nel listino nuovo, status = "senza_match" e voce_nuova_id = null.
+
+VOCI STORICHE CONSOLIDATE:
+${vociConsolidate.map(v => `[${v.id}] ${v.descrizione} | canonica:${v.voce_canonica} | freq:${v.frequenza} | unit:€${v.importo_unitario} × ${v.occorrenze} = €${v.totale_anno}`).join('\n')}
+
+VOCI NUOVE DEL LISTINO:
+${vociNuove.map(v => `[${v.id}] ${v.descrizione} | €${v.importo}`).join('\n')}
+
+Rispondi SOLO con JSON:
+{
+  "matching": [
+    {
+      "id_consolidato": "vc1",
+      "voce_nuova_id": 5,
+      "motivazione": "Entrambe sono elaborazione cedolino dipendente",
+      "importo_proposto": 156.00,
+      "status": "match"
+    },
+    {
+      "id_consolidato": "vc3",
+      "voce_nuova_id": null,
+      "motivazione": "Nessuna voce equivalente nel listino nuovo",
+      "importo_proposto": 0,
+      "status": "senza_match"
+    }
+  ]
+}
+Nessun testo prima o dopo il JSON.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 6000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const testo = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(testo);
+    matching = parsed.matching || [];
+    renderMatching();
+    progress.textContent = `${matching.length} righe di matching proposte.`;
+    document.getElementById('step-output').classList.remove('hidden');
+  } catch (e) {
+    progress.textContent = 'Errore: ' + e.message;
+  }
+  btn.disabled = false;
+}
+
+function renderMatching() {
+  const div = document.getElementById('matching-output');
+  if (!matching.length) { div.innerHTML = ''; return; }
+  const vociNuove = voci.filter(v => !stato[v.id].eliminata);
+  let html = `<table class="matching-tabella">
+    <thead><tr>
+      <th style="width:30%">Voce storica</th>
+      <th style="width:35%">Voce nuova listino</th>
+      <th style="width:20%">Motivazione</th>
+      <th style="width:15%">Importo proposto</th>
+    </tr></thead><tbody>`;
+  matching.forEach((m, idx) => {
+    const vc = vociConsolidate.find(v => v.id === m.id_consolidato);
+    if (!vc) return;
+    const opts = vociNuove.map(v => {
+      const desc = stato[v.id].descMod || v.descrizione;
+      const imp = stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo;
+      return `<option value="${v.id}" ${m.voce_nuova_id == v.id ? 'selected' : ''}>${desc.substring(0,60)} (€${imp.toFixed(2)})</option>`;
+    }).join('');
+    const cls = m.status === 'senza_match' ? 'match-rimosso' : '';
+    html += `<tr class="${cls}">
+      <td>
+        <strong>${vc.descrizione}</strong><br>
+        <span style="font-size:11px;color:var(--text-muted)">${vc.frequenza} · €${(vc.importo_unitario||0).toFixed(2)} × ${vc.occorrenze} = €${(vc.totale_anno||0).toFixed(2)}</span>
+      </td>
+      <td>
+        <select onchange="cambiaMatching(${idx}, this.value)">
+          <option value="">— nessuna —</option>
+          ${opts}
+        </select>
+      </td>
+      <td><div class="matching-motivo">${m.motivazione || ''}</div></td>
+      <td><input type="number" step="0.01" value="${(m.importo_proposto||0).toFixed(2)}" onchange="cambiaImportoMatching(${idx}, this.value)"></td>
+    </tr>`;
+  });
+  // Voci nuove non matchate
+  const idMatchati = matching.filter(m => m.voce_nuova_id).map(m => parseInt(m.voce_nuova_id));
+  const vociNuoveLibere = vociNuove.filter(v => !idMatchati.includes(v.id));
+  if (vociNuoveLibere.length) {
+    html += `<tr><td colspan="4" style="background:var(--bg);font-style:italic;font-size:11px;padding:6px 10px">Voci nuove non abbinate a nessuna storica (potenzialmente servizi aggiunti quest'anno):</td></tr>`;
+    vociNuoveLibere.forEach(v => {
+      const desc = stato[v.id].descMod || v.descrizione;
+      const imp = stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo;
+      html += `<tr class="match-nuovo"><td colspan="2"><em>${desc}</em></td><td><span class="matching-motivo">non presente nello storico</span></td><td style="text-align:right">€ ${imp.toFixed(2)}</td></tr>`;
+    });
+  }
+  const totProposto = matching.reduce((a, m) => a + (parseFloat(m.importo_proposto) || 0), 0);
+  const totNuoveLibere = vociNuoveLibere.reduce((a, v) => {
+    return a + (stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo);
+  }, 0);
+  html += `<tr style="background:var(--success-light);font-weight:bold"><td colspan="3" style="text-align:right">TOTALE PROPOSTA</td><td style="text-align:right">€ ${(totProposto+totNuoveLibere).toFixed(2)}</td></tr>`;
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+
+function cambiaMatching(idx, voceNuovaId) {
+  matching[idx].voce_nuova_id = voceNuovaId ? parseInt(voceNuovaId) : null;
+  matching[idx].status = voceNuovaId ? 'match' : 'senza_match';
+  if (voceNuovaId) {
+    const v = voci.find(x => x.id === parseInt(voceNuovaId));
+    const vc = vociConsolidate.find(x => x.id === matching[idx].id_consolidato);
+    if (v && vc) {
+      const imp = stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo;
+      matching[idx].importo_proposto = imp * (vc.occorrenze || 1);
+    }
+  }
+  renderMatching();
+}
+
+function cambiaImportoMatching(idx, val) {
+  matching[idx].importo_proposto = parseFloat(val) || 0;
+  renderMatching();
+}
+
+// ============ STEP 5: PROPOSTA PARCELLA ============
+
+function generaProposta(tipo) {
+  if (!matching.length) { alert('Esegui prima il matching.'); return; }
+  const div = document.getElementById('proposta-output');
+
+  // Costruisco l'output basandomi su matching + voci nuove libere
+  const vociNuove = voci.filter(v => !stato[v.id].eliminata);
+  const idMatchati = matching.filter(m => m.voce_nuova_id).map(m => parseInt(m.voce_nuova_id));
+  const vociNuoveLibere = vociNuove.filter(v => !idMatchati.includes(v.id));
+
+  // Costruisco lista voci finali con info per allocazione trimestrale
+  const vociFinali = [];
+  matching.forEach(m => {
+    if (m.status === 'senza_match' && !m.voce_nuova_id) return;
+    const vc = vociConsolidate.find(v => v.id === m.id_consolidato);
+    if (!vc) return;
+    vociFinali.push({
+      descrizione: vc.descrizione,
+      voceCanonica: vc.voce_canonica,
+      frequenza: vc.frequenza,
+      mesi: vc.mesi || [],
+      occorrenze: vc.occorrenze || 1,
+      importoTotale: parseFloat(m.importo_proposto) || 0,
+      importoUnitario: (parseFloat(m.importo_proposto) || 0) / (vc.occorrenze || 1)
+    });
+  });
+  vociNuoveLibere.forEach(v => {
+    const desc = stato[v.id].descMod || v.descrizione;
+    const imp = stato[v.id].importoMod !== null ? stato[v.id].importoMod : v.importo;
+    vociFinali.push({
+      descrizione: desc,
+      voceCanonica: '—',
+      frequenza: 'una_tantum',
+      mesi: [],
+      occorrenze: 1,
+      importoTotale: imp,
+      importoUnitario: imp
+    });
+  });
+
+  let html = '';
+  if (tipo === 'annuale') {
+    html = renderPropostaAnnuale(vociFinali);
+  } else {
+    html = renderPropostaTrimestrale(vociFinali);
+  }
+  div.innerHTML = html;
+}
+
+function renderPropostaAnnuale(vociFinali) {
+  // Raggruppo per voce canonica
+  const gruppi = {};
+  vociFinali.forEach(v => {
+    const k = v.voceCanonica || 'Altro';
+    if (!gruppi[k]) gruppi[k] = [];
+    gruppi[k].push(v);
+  });
+  let txt = `PROPOSTA PARCELLA ANNUALE — ${clienteNome || 'Cliente'}\n${'='.repeat(60)}\n\n`;
+  let totGen = 0;
+  for (const k in gruppi) {
+    txt += `── ${k} ──\n`;
+    gruppi[k].forEach(v => {
+      txt += `  • ${v.descrizione}\n`;
+      if (v.occorrenze > 1) {
+        txt += `    ${v.occorrenze} occorrenze × €${v.importoUnitario.toFixed(2)} = €${v.importoTotale.toFixed(2)}\n`;
+      } else {
+        txt += `    €${v.importoTotale.toFixed(2)}\n`;
+      }
+      totGen += v.importoTotale;
+    });
+    txt += '\n';
+  }
+  txt += `${'='.repeat(60)}\nTOTALE PARCELLA ANNUALE: € ${totGen.toFixed(2)}\n`;
+  return `<div class="proposta-output">${txt}</div>`;
+}
+
+function renderPropostaTrimestrale(vociFinali) {
+  // Allocazione voci nei trimestri
+  const MESI_TRIM = {
+    'Q1': ['gen','feb','mar','gennaio','febbraio','marzo'],
+    'Q2': ['apr','mag','giu','aprile','maggio','giugno'],
+    'Q3': ['lug','ago','set','luglio','agosto','settembre'],
+    'Q4': ['ott','nov','dic','ottobre','novembre','dicembre']
+  };
+  const trim = { Q1: [], Q2: [], Q3: [], Q4: [] };
+
+  vociFinali.forEach(v => {
+    const freq = v.frequenza;
+    if (freq === 'mensile') {
+      // Spalmo su tutti e 4 trimestri proporzionalmente
+      const perTrim = v.importoTotale / 4;
+      ['Q1','Q2','Q3','Q4'].forEach(q => trim[q].push({ ...v, importoTotale: perTrim, note:'mensile / quota trimestrale' }));
+    } else if (freq === 'trimestrale') {
+      const perTrim = v.importoTotale / 4;
+      ['Q1','Q2','Q3','Q4'].forEach(q => trim[q].push({ ...v, importoTotale: perTrim, note:'trimestrale' }));
+    } else if (v.mesi && v.mesi.length) {
+      // Allocazione precisa per mese
+      const importoPerOcc = v.importoUnitario;
+      v.mesi.forEach(m => {
+        const ml = (m||'').toLowerCase();
+        for (const q of ['Q1','Q2','Q3','Q4']) {
+          if (MESI_TRIM[q].some(mese => ml.startsWith(mese.substring(0,3)))) {
+            trim[q].push({ ...v, importoTotale: importoPerOcc, note: `competenza ${m}` });
+            break;
+          }
+        }
+      });
+    } else {
+      // Voci annuali/una tantum senza mese: metto in Q4 di default
+      trim.Q4.push({ ...v, note: 'una tantum' });
+    }
+  });
+
+  let txt = `PROPOSTA 4 PARCELLE TRIMESTRALI — ${clienteNome || 'Cliente'}\n${'='.repeat(60)}\n\n`;
+  let totGen = 0;
+  ['Q1','Q2','Q3','Q4'].forEach(q => {
+    txt += `\n┌─ TRIMESTRE ${q} ─────────────────────────────────────\n`;
+    let totQ = 0;
+    trim[q].forEach(v => {
+      txt += `  • ${v.descrizione}`;
+      if (v.note) txt += ` [${v.note}]`;
+      txt += `\n    € ${v.importoTotale.toFixed(2)}\n`;
+      totQ += v.importoTotale;
+    });
+    txt += `└─ Totale ${q}: € ${totQ.toFixed(2)}\n`;
+    totGen += totQ;
+  });
+  txt += `\n${'='.repeat(60)}\nTOTALE 4 PARCELLE: € ${totGen.toFixed(2)}\n`;
+  return `<div class="proposta-output">${txt}</div>`;
+}
+
+// ============ EXPORT JSON TARIFFARIO ============
+
+function esportaJSONTariffario() {
+  if (!vociConsolidate.length) { alert('Nessun dato consolidato da esportare.'); return; }
+  const totAnno = vociConsolidate.reduce((a, v) => a + (v.totale_anno || 0), 0);
+  const annoRif = (() => {
+    const tutteLeDate = parcelleStoriche
+      .filter(p => p.status === 'ok')
+      .flatMap(p => (p.parcelle || []).map(par => par.data || ''))
+      .map(d => {
+        const m = (d || '').match(/(\d{4})/);
+        return m ? parseInt(m[1]) : null;
+      })
+      .filter(Boolean);
+    return tutteLeDate.length ? Math.max(...tutteLeDate) : new Date().getFullYear() - 1;
+  })();
+
+  const payload = {
+    schema_version: '1.0',
+    tipo: 'dati_cliente_per_tariffario',
+    cliente: clienteNome || 'cliente',
+    anno_riferimento: annoRif,
+    data_export: new Date().toISOString(),
+    n_parcelle_analizzate: parcelleStoriche.filter(p => p.status === 'ok').reduce((a, p) => a + (p.parcelle?.length || 1), 0),
+    n_file_caricati: parcelleStoriche.filter(p => p.status === 'ok').length,
+    totale_anno: parseFloat(totAnno.toFixed(2)),
+    profilo_narrativo: profiloCliente || null,
+    voci: vociConsolidate.map(v => ({
+      descrizione: v.descrizione,
+      voce_canonica: v.voce_canonica,
+      frequenza: v.frequenza,
+      importo_unitario: v.importo_unitario,
+      occorrenze: v.occorrenze,
+      mesi: v.mesi,
+      importi_mensili: v.importi_mensili,
+      totale_anno: v.totale_anno,
+      varia: v.varia,
+      variazione_note: v.variazione_note
+    }))
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const nomeCli = (clienteNome || 'cliente').replace(/[^a-z0-9]/gi, '_');
+  a.download = `tariffario_${nomeCli}_${annoRif}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function esportaPropostaExcel() {
+  const out = document.getElementById('proposta-output');
+  if (!out.innerHTML.trim()) { alert('Genera prima una proposta (annuale o trimestrale).'); return; }
+  const testo = out.textContent || '';
+  // Esporta come file di testo formattato
+  const blob = new Blob([testo], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const nomeCli = (clienteNome || 'cliente').replace(/[^a-z0-9]/gi, '_');
+  a.download = `proposta_parcella_${nomeCli}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function resetStorico() {
+  if (!confirm('Cancellare tutti i dati del modulo parcelle storiche?')) return;
+  parcelleStoriche = [];
+  vociConsolidate = [];
+  profiloCliente = '';
+  matching = [];
+  renderParcelleList();
+  document.getElementById('consolidato-output').innerHTML = '';
+  document.getElementById('profilo-output').innerHTML = '';
+  document.getElementById('matching-output').innerHTML = '';
+  document.getElementById('proposta-output').innerHTML = '';
+  document.getElementById('estrai-progress').textContent = '';
+  document.getElementById('consolida-progress').textContent = '';
+  document.getElementById('profilo-progress').textContent = '';
+  document.getElementById('matching-progress').textContent = '';
+  document.getElementById('step-consolida').classList.add('hidden');
+  document.getElementById('step-profilo').classList.add('hidden');
+  document.getElementById('step-matching').classList.add('hidden');
+  document.getElementById('step-output').classList.add('hidden');
+}
+</script>
+</body>
+</html>
